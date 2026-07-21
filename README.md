@@ -15,6 +15,21 @@
 * Развертывание конфигурационного файла на основе Jinja2-шаблона.
 * Запуск процесса Vector в фоновом режиме.
 
+## ⚙️ Параметры и переменные
+
+| Переменная | Описание | Пример значения |
+| :--- | :--- | :--- |
+| `clickhouse_version` | Версия пакетов ClickHouse для загрузки | `22.3.3.44` |
+
+### Vector ( group_vars/vector/vars.yml )
+
+| Переменная | Описание | Пример значения |
+| :--- | :--- | :--- |
+| `vector_archive_url` | Прямая ссылка на скачивание архива Vector | `https://.../vector.tar.gz` |
+| `vector_install_dir` | Путь, куда будет распакован Vector | `/root/vector/...` |
+| `vector_config_path` | Путь к файлу конфигурации `.yaml` | `/root/vector/.../vector.yaml` |
+
+
 ## 🚀 Использование
 
 ### Предварительные требования
@@ -26,7 +41,7 @@
 1. Проверка синтаксиса и режима Dry-run:
    
    ```bash
-   nansible-playbook -i inventory/prod.yml site.yml --check --diff```
+   ansible-playbook -i inventory/prod.yml site.yml --check --diff```
    
 3. Полный запуск:
    
