@@ -48,3 +48,8 @@
    ```bash
    ansible-playbook -i inventory/prod.yml site.yml```
 
+#### Скриншоты решений
+
+![Скрин](screenshots/Task-8.1.png)
+![Скрин](screenshots/Task-8.2.png)
+
