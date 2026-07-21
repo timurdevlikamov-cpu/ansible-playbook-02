@@ -25,9 +25,11 @@
 ### Запуск
 1. Проверка синтаксиса и режима Dry-run:
    
-   ```bash\nansible-playbook -i inventory/prod.yml site.yml --check --diff```
+   ```bash
+   nansible-playbook -i inventory/prod.yml site.yml --check --diff```
    
-2. Полный запуск:
+3. Полный запуск:
    
-   ```bash\ansible-playbook -i inventory/prod.yml site.yml```
+   ```bash
+   ansible-playbook -i inventory/prod.yml site.yml```
 
