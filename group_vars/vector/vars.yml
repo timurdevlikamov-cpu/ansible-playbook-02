@@ -1,0 +1,7 @@
+---
+###vector_version: "0.57.0-1.x86_64"
+vector_archive_url: "https://packages.timber.io/vector/0.57.0/vector-0.57.0-x86_64-unknown-linux-gnu.tar.gz"
+#vector_install_dir: "{{ ansible_env.HOME }}/vector"
+#vector_config_path: "{{ ansible_env.HOME }}/vector/config/vector.yaml"
+vector_install_dir: "{{ ansible_env.HOME }}/vector/vector-x86_64-unknown-linux-gnu"
+vector_config_path: "{{ ansible_env.HOME }}/vector/vector-x86_64-unknown-linux-gnu/config/vector.yaml"

@@ -1,36 +1,105 @@
 ---
 - name: Install Clickhouse
   hosts: clickhouse
+  become: true
   handlers:
     - name: Start clickhouse service
-      become: true
       ansible.builtin.service:
         name: clickhouse-server
         state: restarted
+
   tasks:
+
+    - name: DEBUG - Check version and file existence
+      ansible.builtin.shell: |
+        echo "Version variable is: {{ clickhouse_version }}"
+        ls -l /tmp/clickhouse-client_{{ clickhouse_version }}_all.deb
+      register: debug_output
+
+    - name: Show Debug Output
+      ansible.builtin.debug:
+        var: debug_output.stdout_lines
     - block:
-        - name: Get clickhouse distrib
+        - name: Download Clickhouse DEB packages
           ansible.builtin.get_url:
-            url: "https://packages.clickhouse.com/rpm/stable/{{ item }}-{{ clickhouse_version }}.noarch.rpm"
-            dest: "./{{ item }}-{{ clickhouse_version }}.rpm"
-          with_items: "{{ clickhouse_packages }}"
+            url: "https://packages.clickhouse.com/deb/pool/main/c/{{ item.name }}/{{ item.name }}_{{ clickhouse_version }}_{{ item.arch }}.deb"
+            dest: "/tmp/{{ item.name }}_{{ clickhouse_version }}_{{ item.arch }}.deb"
+          loop:
+            - { name: 'clickhouse-client', arch: 'all' }
+            - { name: 'clickhouse-server', arch: 'all' }
+            - { name: 'clickhouse-common-static', arch: 'amd64' }
       rescue:
-        - name: Get clickhouse distrib
+        - name: Fallback for common static if needed
           ansible.builtin.get_url:
-            url: "https://packages.clickhouse.com/rpm/stable/clickhouse-common-static-{{ clickhouse_version }}.x86_64.rpm"
-            dest: "./clickhouse-common-static-{{ clickhouse_version }}.rpm"
+            url: "https://packages.clickhouse.com/deb/pool/main/c/clickhouse-common-static/clickhouse-common-static_{{ clickhouse_version }}_amd64.deb"
+            dest: "/tmp/clickhouse-common-static_{{ clickhouse_version }}_amd64.deb"
+
     - name: Install clickhouse packages
-      become: true
-      ansible.builtin.yum:
-        name:
-          - clickhouse-common-static-{{ clickhouse_version }}.rpm
-          - clickhouse-client-{{ clickhouse_version }}.rpm
-          - clickhouse-server-{{ clickhouse_version }}.rpm
+      ansible.builtin.apt:
+        deb: "/tmp/{{ item }}"
+      loop:
+        - "clickhouse-common-static_{{ clickhouse_version }}_amd64.deb"
+        - "clickhouse-server_{{ clickhouse_version }}_all.deb"
+        - "clickhouse-client_{{ clickhouse_version }}_all.deb"
       notify: Start clickhouse service
+
     - name: Flush handlers
       meta: flush_handlers
     - name: Create database
       ansible.builtin.command: "clickhouse-client -q 'create database logs;'"
       register: create_db
+      retries: 10
+      delay: 5
+      until: create_db.rc == 0 or create_db.rc == 82
       failed_when: create_db.rc != 0 and create_db.rc !=82
       changed_when: create_db.rc == 0
+
+
+- name: Install and Configure Vector
+  hosts: clickhouse
+  become: true
+  handlers:
+    - name: Restart vector
+      ansible.builtin.shell: "{{ vector_install_dir }}/bin/vector --config {{ vector_config_path }} &"
+
+  tasks:
+    - name: Create vector directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ vector_install_dir }}"
+        - "{{ vector_config_path | dirname }}"
+
+    - name: Download and Unarchive Vector
+      ansible.builtin.unarchive:
+        src: "{{ vector_archive_url }}"
+        dest: "{{ vector_install_dir }}"
+        remote_src: true
+
+    - name: DEBUG - List files after unarchive
+      ansible.builtin.command: "find {{ vector_install_dir }} -name vector"
+      register: find_vector
+      changed_when: false
+
+    - name: Show where vector is
+      ansible.builtin.debug:
+        var: find_vector.stdout_lines
+
+    - name: Deploy Vector configuration
+      ansible.builtin.template:
+        src: templates/vector.yaml.j2
+        dest: "{{ vector_config_path }}"
+        mode: '0644'
+      notify: Restart vector
+
+    - name: Verify vector binary exists
+      ansible.builtin.stat:
+        path: "{{ vector_install_dir }}/bin/vector"
+      register: vector_bin
+
+    - name: Fail if vector binary not found
+      ansible.builtin.fail:
+        msg: "Vector binary was not extracted correctly!"
+      when: not vector_bin.stat.exists
