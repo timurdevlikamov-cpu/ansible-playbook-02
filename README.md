@@ -23,7 +23,7 @@
 * Права sudo для пользователя, указанного в инвентаре.
 
 ### Запуск
-1. Проверка синтаксиса и режима Dry-run:
-   ansible-playbook -i inventory/prod.yml site.yml --check --diff
-2. Полный запуск:
+1. Проверка синтаксиса и режима Dry-run:\n
+   ```bash\nansible-playbook -i inventory/prod.yml site.yml --check --diff\n```
+2. Полный запуск:\n
    ansible-playbook -i inventory/prod.yml site.yml
